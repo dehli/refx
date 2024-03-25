@@ -76,6 +76,37 @@
   (doseq [[_ sub] @sub-cache]
     (dispose! sub)))
 
+(defonce ^:private listeners-state
+  (atom {:counter 0 :pending '()}))
+
+(defn- invoke-listener
+  "This function is responsible for ensuring that signal listeners
+  (from DynamicSubs) are called before triggering regular listeners
+  (eg: added via use-sub hook). This will ensure that there's only
+  a single render per db update."
+  [listener-key listener-fn]
+  (swap! listeners-state (fn [state]
+                           (cond-> (update state :counter inc)
+                             (not (signal? listener-key))
+                             (update :pending conj listener-fn))))
+
+  (when (signal? listener-key)
+    (listener-fn))
+
+  (interop/next-tick
+   (fn []
+     (let [listener-fns (atom '())]
+       (swap! listeners-state (fn [state]
+                                (let [{:keys [counter pending] :as new-state}
+                                      (update state :counter dec)]
+                                  (if (zero? counter)
+                                    (do
+                                      (reset! listener-fns pending)
+                                      (assoc new-state :pending '()))
+                                    new-state))))
+       (doseq [f @listener-fns]
+         (f))))))
+
 (deftype Listeners [^:mutable listeners]
   Object
   (empty? [_] (empty? listeners))
@@ -84,8 +115,8 @@
   (remove [_ k]
     (set! listeners (dissoc listeners k)))
   (notify [_]
-    (doseq [[_ f] listeners]
-      (f))))
+    (doseq [[k f] listeners]
+      (invoke-listener k f))))
 
 (defn- make-listeners []
   (Listeners. nil))

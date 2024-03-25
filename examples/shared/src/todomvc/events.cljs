@@ -1,7 +1,7 @@
 (ns todomvc.events
   (:require
    [todomvc.db :refer [default-db todos->local-store]]
-   [refx.alpha :refer [reg-event-db reg-event-fx inject-cofx]]
+   [refx.alpha :refer [reg-event-db reg-event-fx inject-cofx reg-sub]]
    [refx.interceptors :refer [path after]]
    [cljs.spec.alpha :as s]))
 
@@ -222,3 +222,17 @@
      (reduce #(assoc-in %1 [%2 :done] new-done)
              todos
              (keys todos)))))
+
+
+(defonce ^:private counter (atom nil))
+(reg-event-db :debug/update-keys
+  (fn [db]
+    (let [new-val (swap! counter inc)]
+      (assoc db
+             :key-a new-val
+             :key-b new-val))))
+
+(reg-sub :key-e
+  (constantly counter)
+  (fn [counter]
+    counter))

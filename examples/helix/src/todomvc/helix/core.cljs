@@ -14,7 +14,7 @@
   ;; The view function `todomvc.views/todo-app` is the
   ;; root view for the entire UI.
 
-  (react-dom/render ($ react/StrictMode ($ views/todo-app))
+  (react-dom/render ($ react/StrictMode ($ views/debug-app))
                     (.getElementById js/document "app")))
 
 (defn ^:dev/after-load clear-cache-and-render!

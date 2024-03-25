@@ -162,3 +162,20 @@
   :<- [:completed-count]
   (fn [[todos completed] _]
     [(- (count todos) completed) completed]))
+
+(reg-sub :key-a :-> :key-a)
+
+(reg-sub :key-b :-> :key-b)
+
+(reg-sub :key-c
+  (fn [query]
+    (sub [:key-b (sub [:key-a])]))
+  (fn [key-b]
+    key-b))
+
+(reg-sub :key-d
+  (fn [query]
+    {:key-b (sub [:key-b])
+     :key-c (sub [:key-c query])})
+  (fn [{:keys [key-c]}]
+    key-c))

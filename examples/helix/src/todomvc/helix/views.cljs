@@ -1,6 +1,6 @@
 (ns todomvc.helix.views
   (:require [helix.core :refer [defnc $ <>]]
-            [helix.hooks :refer [use-state]]
+            [helix.hooks :refer [use-effect use-state]]
             [helix.dom :as d]
             [refx.alpha :refer [use-sub dispatch]]
             [clojure.string :as str]))
@@ -106,3 +106,37 @@
               ($ footer-controls))
    (d/footer {:id "info"}
              (d/p "Double-click to edit a todo"))))
+
+
+(defnc debug-app
+  []
+  (let [[sub-vals set-sub-vals!] (use-state [])
+        key-a (use-sub [:key-a])
+        key-b nil
+        key-c nil
+        key-d nil
+        key-e nil
+        ;;#_#_#_#_#_#_#_#_
+        key-b (use-sub [:key-b])
+        key-c (use-sub [:key-c 0])
+        key-d (use-sub [:key-d 1])
+        key-e (use-sub [:key-e])]
+
+    (use-effect
+     [key-a key-b key-c key-d]
+     (set-sub-vals! #(conj % {:key (random-uuid)
+                              :key-a key-a
+                              :key-b key-b
+                              :key-c key-c
+                              :key-d key-d
+                              :key-e key-e
+                              :time (js/Date.now)})))
+
+    ($ :div
+       ($ :button
+          {:on-click #(dispatch [:debug/update-keys])}
+          "Click me")
+
+       (for [x sub-vals]
+         ($ :div {:key (:key x)}
+            (str (dissoc x :key :time)))))))
